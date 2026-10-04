@@ -41,6 +41,11 @@ class UrlInputTest {
     }
 
     @Test
+    fun defaultHomeIsTheCinejoyEpisode() {
+        assertEquals("https://cinejoy.pk/watch/tv/220542/1/1", UrlInput.DEFAULT_HOME)
+    }
+
+    @Test
     fun homePageFilter() {
         assertTrue(UrlInput.canSaveAsHome("https://example.com"))
         assertFalse(UrlInput.canSaveAsHome("data:text/html,hi"))

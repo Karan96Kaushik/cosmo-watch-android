@@ -45,7 +45,9 @@ Debug builds turn on `about:config`, remote debugging, and Gecko console output 
 
 The D-pad moves a cursor drawn over the page. Holding a direction speeds it up. At the edge of the screen the page scrolls through `PanZoomController.scrollBy`. Select clicks by sending a touch down/up to `GeckoView`. A long press on Select, or the Menu key, opens the control menu. Search on the remote opens the address bar. Back closes the address bar, then the menu, then fullscreen video, then navigates back, then leaves the app.
 
-The address bar takes a URL or a search. The default search template is DuckDuckGo (`https://duckduckgo.com/?q=%s`), stored in `SharedPreferences` and editable from the menu. The home page starts at DuckDuckGo and can be replaced with "Set this page as home". Desktop mode is the default, with a menu toggle for the mobile user agent and viewport.
+While a Gecko media session is active, the remote’s play, pause, play/pause, stop, rewind, fast-forward, next, and previous keys call GeckoView `MediaSession` (`play`, `pause`, `stop`, `seekTo` / `seekForward` / `seekBackward`, `nextTrack`, `previousTrack`). Those commands are also published on an Android `MediaSession` so Fire TV can deliver them as transport controls. In fullscreen, Left and Right seek 10 seconds, Up and Down change the media volume, and Select toggles play. A long press on Select still opens the menu.
+
+The address bar takes a URL or a search. The default search template is DuckDuckGo (`https://duckduckgo.com/?q=%s`), stored in `SharedPreferences` and editable from the menu. The home page starts at `https://cinejoy.pk/watch/tv/220542/1/1` and can be replaced with "Set this page as home". Desktop mode is the default, with a menu toggle for the mobile user agent and viewport.
 
 ## uBlock Origin
 

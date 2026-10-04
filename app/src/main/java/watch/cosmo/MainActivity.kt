@@ -2,13 +2,13 @@ package watch.cosmo
 
 import android.content.ActivityNotFoundException
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.os.Build
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowInsets
@@ -34,6 +34,7 @@ import watch.cosmo.tv.CursorOverlay
 import watch.cosmo.tv.CursorSpeed
 import watch.cosmo.tv.PromptUi
 import watch.cosmo.tv.UrlBar
+import watch.cosmo.tv.VideoControls
 
 class MainActivity : AppCompatActivity(),
     SessionDelegates.Callbacks,
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var warning: TextView
     private lateinit var status: TextView
     private lateinit var promptUi: PromptUi
+    private lateinit var videoControls: VideoControls
 
     private var fullScreen = false
     private var extensionFailed = false
@@ -109,6 +111,7 @@ class MainActivity : AppCompatActivity(),
         warning = findViewById(R.id.warning)
         status = findViewById(R.id.status)
         promptUi = PromptUi(this, this)
+        videoControls = VideoControls(this, onStatus = ::showStatus, onOpenMenu = ::openMenu)
         cursor.listener = this
         urlBar.onSubmit = { raw -> navigate(raw) }
         menu.onItem = { id -> onMenu(id) }
@@ -136,6 +139,7 @@ class MainActivity : AppCompatActivity(),
         heldKeys.clear()
         cursorHandler.removeCallbacks(ticker)
         cursorHandler.removeCallbacks(longPress)
+        videoControls.cancelHold()
         app.session?.setActive(false)
         super.onPause()
     }
@@ -144,6 +148,7 @@ class MainActivity : AppCompatActivity(),
         if (geckoView.session != null) {
             geckoView.releaseSession()
         }
+        videoControls.release()
         super.onDestroy()
     }
 
@@ -169,6 +174,7 @@ class MainActivity : AppCompatActivity(),
         if (urlBar.isOpen || menu.isOpen) {
             return super.dispatchKeyEvent(event)
         }
+        if (videoControls.handleKey(event)) return true
         if (fullScreen) {
             return geckoView.dispatchKeyEvent(event)
         }
@@ -228,6 +234,7 @@ class MainActivity : AppCompatActivity(),
                 menu.close()
             }
             setSystemBarsHidden(fullScreen)
+            videoControls.pageFullScreen = fullScreen
             updateChrome()
         }
     }
@@ -325,6 +332,7 @@ class MainActivity : AppCompatActivity(),
         session.contentDelegate = delegates
         session.progressDelegate = delegates
         session.promptDelegate = delegates
+        session.mediaSessionDelegate = videoControls
     }
 
     private fun startInitialLoad() {
@@ -583,11 +591,10 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showStatus(text: String) {
-        if (fullScreen) return
         status.text = text
         status.visibility = View.VISIBLE
         status.removeCallbacks(hideStatus)
-        status.postDelayed(hideStatus, 5000)
+        status.postDelayed(hideStatus, 2500)
     }
 
     private fun showWarning() {
@@ -600,7 +607,6 @@ class MainActivity : AppCompatActivity(),
         cursor.visibility = if (hidePointer) View.INVISIBLE else View.VISIBLE
         if (fullScreen) {
             warning.visibility = View.GONE
-            status.visibility = View.GONE
         } else if (extensionFailed) {
             warning.visibility = View.VISIBLE
         }

@@ -46,4 +46,11 @@
     <string name="stay">Stay</string>
     <string name="repost">Send the form again?</string>
     <string name="send">Send</string>
+    <string name="video_playing">Playing %1$s</string>
+    <string name="video_paused">Paused %1$s</string>
+    <string name="video_stopped">Stopped</string>
+    <string name="video_next">Next</string>
+    <string name="video_previous">Previous</string>
+    <string name="video_seek_forward">Seek forward</string>
+    <string name="video_seek_backward">Seek backward</string>
 </resources>

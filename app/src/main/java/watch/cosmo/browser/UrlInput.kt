@@ -7,7 +7,7 @@ import java.net.URLEncoder
  * Anything else is sent to the configured search template.
  */
 object UrlInput {
-    const val DEFAULT_HOME = "https://duckduckgo.com/"
+    const val DEFAULT_HOME = "https://cinejoy.pk/watch/tv/220542/1/1"
     const val DEFAULT_SEARCH = "https://duckduckgo.com/?q=%s"
 
     fun resolve(raw: String, searchTemplate: String = DEFAULT_SEARCH): String {
