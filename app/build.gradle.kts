@@ -8,6 +8,12 @@ plugins {
 // and x86_64; ABI splits keep each APK to one of those.
 val geckoviewVersion = "157.0.20260924084938"
 
+// Optional. buildspec.yml decodes ANDROID_KEYSTORE_BASE64 into this path.
+val releaseKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+val releaseKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAliasName = System.getenv("ANDROID_KEY_ALIAS")
+val releaseKeyPasswordValue = System.getenv("ANDROID_KEY_PASSWORD")
+
 android {
     namespace = "watch.cosmo"
     compileSdk {
@@ -43,6 +49,17 @@ android {
         }
     }
 
+    if (!releaseKeystorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAliasName
+                keyPassword = releaseKeyPasswordValue
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -50,6 +67,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (!releaseKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
