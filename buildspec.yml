@@ -1,0 +1,89 @@
+version: 0.2
+
+env:
+  variables:
+    # GeckoView 157 requires compileSdk 37.1. AGP 9.4.1's default build-tools is 36.0.0.
+    ANDROID_COMPILE_SDK: "37.1"
+    ANDROID_BUILD_TOOLS: "36.0.0"
+    ANDROID_SDK_TOOLS: "11076708"
+    # Optional release signing (Base64-encoded keystore + passwords):
+    # ANDROID_KEYSTORE_BASE64
+    # ANDROID_KEYSTORE_PASSWORD
+    # ANDROID_KEY_ALIAS
+    # ANDROID_KEY_PASSWORD
+  exported-variables:
+    - ANDROID_HOME
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+    commands:
+      - |
+        set -euo pipefail
+        echo "Installing Android SDK command-line tools"
+        export ANDROID_HOME="$HOME/android-sdk"
+        mkdir -p "$ANDROID_HOME/cmdline-tools"
+        curl -fsSL -o /tmp/cmdline-tools.zip \
+          "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_TOOLS}_latest.zip"
+        unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
+        mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        yes | sdkmanager --licenses >/dev/null || true
+        sdkmanager "platform-tools" "platforms;android-${ANDROID_COMPILE_SDK}" "build-tools;${ANDROID_BUILD_TOOLS}"
+
+  pre_build:
+    commands:
+      - |
+        set -euo pipefail
+        export ANDROID_HOME="$HOME/android-sdk"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+        chmod +x ./gradlew
+        if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+          echo "Decoding release keystore"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          export ANDROID_KEYSTORE_PATH=/tmp/release.keystore
+        else
+          echo "No release keystore provided; release APK will be unsigned or debug-signed"
+        fi
+
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        export ANDROID_HOME="$HOME/android-sdk"
+        export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        if [ -f /tmp/release.keystore ]; then
+          export ANDROID_KEYSTORE_PATH=/tmp/release.keystore
+        fi
+        echo "Running unit tests"
+        ./gradlew --no-daemon test
+        echo "Building debug APK"
+        ./gradlew --no-daemon assembleDebug
+        echo "Building release APK"
+        ./gradlew --no-daemon assembleRelease
+        echo "Building release AAB"
+        ./gradlew --no-daemon bundleRelease
+
+  post_build:
+    commands:
+      - |
+        if [ -f /tmp/release.keystore ]; then
+          echo "Removing temporary keystore"
+          rm -f /tmp/release.keystore
+        fi
+        echo "Build artifacts:"
+        find app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -print
+
+artifacts:
+  files:
+    - app/build/outputs/apk/**/*.apk
+    - app/build/outputs/bundle/**/*.aab
+  discard-paths: no
+
+cache:
+  paths:
+    - /root/.gradle/caches/**/*
+    - /root/.gradle/wrapper/**/*
+    - /root/android-sdk/**/*
